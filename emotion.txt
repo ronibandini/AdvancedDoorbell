@@ -1,0 +1,73 @@
+# Advanced Doorbell
+# With EZB IoTiny
+# Actions after face is detected
+# Roni Bandini
+# Buenos Aires, Argentina
+
+# settings
+
+# IP of the ESP8266 temperature server
+IPTemp           ="http://YOURESP8266IPHERE/";
+# Covid Limit
+tempLimit        =30;
+# Compensation for the temp sensor
+tempCompensation =10.0;
+# Telegram URL
+telegramURL="https://api.telegram.org/YOURBOTIDHERE/sendMessage?chat_id=YOURCHATIDHERE";
+# Open door automatically with a Relay
+doorOpen         =1;
+
+print("Emotion detected");
+
+# stop the cammera
+controlCommand("Camera", "CameraStop");
+
+# turn on the front Led
+Digital.Set(d7, True);
+
+yourEmotion=getVar("$EmotionDescription");
+yourTemperature=0;
+
+# query ESP8266 server to get IR temperature
+yourTemperature=Net.HTTPGet(IPTemp,5000);
+yourTemperature=float(yourTemperature)+tempCompensation;
+
+print("Emotion: ");
+print(yourEmotion);
+print("Temperature: ");
+print(yourTemperature);
+
+# Telegram notification
+Net.HTTPGet(telegramURL+"&text="+yourEmotion+" person at your door with temperature: "+str(yourTemperature)+" C");
+
+# turn off the led
+Digital.Set(d7, False);
+
+if  ( yourTemperature > tempLimit ):
+  Audio.SayEZBWait("Your temperature is " + str(yourTemperature) +" celsius. That is ok.");    
+  
+  if (yourEmotion=="Anger" or yourEmotion=="Disgust" or yourEmotion=="Fear"):
+     Audio.SayEZBWait("You seem a little stressed. Listen to this song while I open the door.");  
+     controlCommand("Soundboard v4", "Track_0");     
+     sleep (20000);
+     controlCommand("Soundboard v4", "Stop");
+     
+     if (doorOpen==1):
+       Digital.Set(d0, True);
+       sleep (2000);
+       Digital.Set(d0, False);
+  else:
+    Audio.SayEZBWait("You expression resembles "+yourEmotion+ "... Listen this podcast while I open the door");  
+    controlCommand("Soundboard v4", "Track_1");     
+    sleep (20000);
+    controlCommand("Soundboard v4", "Stop");
+    
+    if (doorOpen==1):
+      # open the door
+      Digital.Set(d0, True);
+      sleep (2000);
+      Digital.Set(d0, False);
+else:
+  Audio.SayEZBWait("Your temperature is " + yourTemperature+" celsius. Sorry. You cannot get in due to Covid rules.");
+
+controlCommand("Camera", "CameraStart");

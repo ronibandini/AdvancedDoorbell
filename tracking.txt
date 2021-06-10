@@ -1,0 +1,8 @@
+# Advanced Doorbell
+# With EZB IoTiny
+# Trigger emotion detection when face is presented
+# Roni Bandini
+# Buenos Aires, Argentina
+
+print("Face detected");
+controlCommand("Cognitive Emotion", "Detect");
